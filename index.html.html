@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bias Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F4EFFB;
+    --bg-2: #ECE3F8;
+    --paper: #FFFFFF;
+    --ink: #2B1B3D;
+    --ink-soft: #6B5A85;
+    --pink: #FF3E82;
+    --yellow: #FFC94A;
+    --blue: #5FC9F8;
+    --lilac: #C9B8E8;
+    --ring: rgba(43,27,61,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 8% 12%, rgba(255,62,130,0.10), transparent 40%),
+      radial-gradient(circle at 92% 8%, rgba(95,201,248,0.14), transparent 38%),
+      radial-gradient(circle at 50% 100%, rgba(255,201,74,0.12), transparent 45%),
+      var(--bg);
+    font-family:'Manrope', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    padding: 28px 20px 80px;
+  }
+
+  .wrap{ max-width: 980px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:16px; flex-wrap:wrap;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 2px dashed var(--lilac);
+  }
+  .title-block h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size: clamp(2rem, 5vw, 2.7rem);
+    margin: 0 0 4px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .title-block h1 .dot{ color: var(--pink); }
+  .title-block p{
+    margin:0; color:var(--ink-soft); font-size:0.98rem; max-width:46ch;
+  }
+  .add-btn{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:0.95rem;
+    background: var(--ink);
+    color: #fff;
+    border:none;
+    border-radius: 999px;
+    padding: 13px 22px;
+    cursor:pointer;
+    box-shadow: 0 4px 0 rgba(43,27,61,0.25);
+    transition: transform .12s ease, box-shadow .12s ease;
+    white-space:nowrap;
+  }
+  .add-btn:hover{ transform: translateY(-2px); box-shadow: 0 6px 0 rgba(43,27,61,0.25); }
+  .add-btn:active{ transform: translateY(1px); box-shadow: 0 2px 0 rgba(43,27,61,0.25); }
+
+  /* ---------- Filter row ---------- */
+  .filters{
+    display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px;
+  }
+  .chip{
+    font-family:'Manrope'; font-weight:700; font-size:0.85rem;
+    padding:8px 15px; border-radius:999px; border:2px solid var(--ink);
+    background:transparent; color:var(--ink); cursor:pointer;
+    transition: all .12s ease;
+  }
+  .chip.active{ background:var(--ink); color:#fff; }
+
+  /* ---------- Grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px;
+  }
+
+  .card{
+    background: var(--paper);
+    border-radius: 20px;
+    padding: 14px 14px 16px;
+    cursor:pointer;
+    border: 3px solid transparent;
+    box-shadow: 0 3px 0 var(--ring), 0 10px 20px -12px rgba(43,27,61,0.25);
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    position:relative;
+  }
+  .card:hover{ transform: translateY(-4px) rotate(-1deg); }
+  .card.selected{ border-color: var(--pink); }
+
+  .avatar{
+    width:100%; aspect-ratio: 3/3.6;
+    border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:2.3rem; color:#fff;
+    margin-bottom:10px;
+    position:relative;
+    overflow:hidden;
+  }
+  .avatar .fav-mark{
+    position:absolute; top:8px; right:8px;
+    font-size:1.1rem; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+    z-index:2;
+  }
+  .avatar .initials{ position:relative; z-index:1; }
+  .avatar::after{
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.28), transparent 55%);
+  }
+  .avatar img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+  }
+
+  .card-name{ font-family:'Baloo 2'; font-weight:700; font-size:1rem; margin:0 0 1px; }
+  .card-sub{ font-size:0.78rem; color:var(--ink-soft); margin:0; }
+  .card-badge{
+    display:inline-block; margin-top:8px; font-size:0.68rem; font-weight:700;
+    padding:3px 9px; border-radius:999px; background:var(--bg-2); color:var(--ink-soft);
+  }
+
+  .add-card{
+    border: 3px dashed var(--lilac);
+    border-radius:20px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:6px; min-height: 100%;
+    color: var(--ink-soft); cursor:pointer; padding:20px;
+    background:transparent;
+    transition: all .12s ease;
+  }
+  .add-card:hover{ border-color:var(--pink); color:var(--pink); background: rgba(255,62,130,0.04); }
+  .add-card .plus{ font-size:1.8rem; font-family:'Baloo 2'; }
+  .add-card span{ font-size:0.8rem; font-weight:700; text-align:center; }
+
+  /* ---------- Detail panel ---------- */
+  .detail{
+    margin-top:26px;
+    background: var(--paper);
+    border-radius: 24px;
+    padding: 26px 26px 28px;
+    box-shadow: 0 14px 30px -18px rgba(43,27,61,0.35);
+    animation: pop .18s ease;
+  }
+  @keyframes pop{ from{ opacity:0; transform: translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  .detail-top{ display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  .detail-avatar{
+    width:96px; height:110px; border-radius:16px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:2rem; color:#fff;
+    position:relative; overflow:hidden;
+  }
+  .detail-avatar::after{ content:''; position:absolute; inset:0; background: linear-gradient(160deg, rgba(255,255,255,0.28), transparent 55%); }
+  .detail-avatar img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+  }
+  .photo-controls{
+    display:flex; flex-direction:column; gap:6px; margin-top:8px;
+  }
+  .photo-btn{
+    font-size:0.72rem; font-weight:700; color:var(--ink-soft);
+    background:var(--bg-2); border:none; border-radius:8px; padding:5px 9px;
+    cursor:pointer; text-align:center;
+  }
+  .photo-btn:hover{ color:var(--ink); }
+
+  .detail-head{ flex:1; min-width:220px; }
+  .detail-head-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .detail-head h2{ font-family:'Baloo 2'; font-size:1.5rem; margin:0; }
+  .fav-btn{
+    border:2px solid var(--ink); background:transparent; border-radius:999px;
+    padding:6px 14px; cursor:pointer; font-weight:700; font-size:0.82rem;
+    display:flex; align-items:center; gap:6px; color:var(--ink);
+    transition: all .12s ease;
+  }
+  .fav-btn.on{ background: var(--pink); border-color: var(--pink); color:#fff; }
+  .detail-head p.role{ margin:4px 0 10px; color:var(--ink-soft); font-size:0.92rem; }
+  .close-x{
+    margin-left:auto; background:none; border:none; font-size:1.4rem; cursor:pointer;
+    color: var(--ink-soft); line-height:1; padding:4px;
+  }
+  .close-x:hover{ color:var(--ink); }
+
+  .bio{ font-size:0.94rem; line-height:1.55; color:var(--ink); margin:14px 0 18px; max-width:65ch; }
+
+  .section-label{
+    font-family:'Baloo 2'; font-weight:700; font-size:0.95rem; color:var(--ink);
+    margin: 18px 0 8px; display:flex; align-items:center; gap:6px;
+  }
+
+  .tags{ display:flex; flex-wrap:wrap; gap:8px; }
+  .tag{
+    background: var(--bg-2); padding:6px 12px; border-radius:10px; font-size:0.84rem; font-weight:600;
+    border-left: 3px solid var(--blue);
+  }
+  .tag.upcoming{ border-left-color: var(--pink); background: rgba(255,62,130,0.07); }
+
+  .fact-box{
+    margin-top:16px; background: linear-gradient(135deg, rgba(255,201,74,0.18), rgba(255,201,74,0.05));
+    border: 1.5px solid rgba(255,201,74,0.5);
+    border-radius:14px; padding:12px 15px; font-size:0.87rem; color:var(--ink);
+  }
+  .fact-box b{ font-family:'Baloo 2'; }
+
+  textarea{
+    width:100%; min-height:80px; border-radius:14px; border:2px solid var(--bg-2);
+    padding:12px 14px; font-family:'Manrope'; font-size:0.9rem; color:var(--ink);
+    resize:vertical; outline:none; background:var(--bg);
+    transition:border-color .12s ease;
+  }
+  textarea:focus{ border-color: var(--blue); }
+  .save-hint{ font-size:0.75rem; color:var(--ink-soft); margin-top:6px; }
+
+  .remove-row{ margin-top:20px; text-align:right; }
+  .remove-btn{
+    background:none; border:none; color:var(--ink-soft); font-size:0.78rem;
+    cursor:pointer; text-decoration:underline;
+  }
+  .remove-btn:hover{ color:var(--pink); }
+
+  /* ---------- Modal (add actor) ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(43,27,61,0.35);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    z-index:50;
+  }
+  .modal{
+    background:var(--paper); border-radius:22px; padding:26px; width:100%; max-width:420px;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.4);
+  }
+  .modal h3{ font-family:'Baloo 2'; margin:0 0 14px; font-size:1.3rem; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:0.78rem; font-weight:700; color:var(--ink-soft); margin-bottom:4px; }
+  .field input, .field textarea{
+    width:100%; border-radius:12px; border:2px solid var(--bg-2); padding:10px 12px;
+    font-family:'Manrope'; font-size:0.88rem; outline:none; background:var(--bg);
+  }
+  .field input:focus, .field textarea:focus{ border-color: var(--blue); }
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  .btn-secondary{
+    background:none; border:2px solid var(--bg-2); color:var(--ink-soft); border-radius:999px;
+    padding:9px 18px; font-weight:700; font-size:0.85rem; cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--pink); border:2px solid var(--pink); color:#fff; border-radius:999px;
+    padding:9px 18px; font-weight:700; font-size:0.85rem; cursor:pointer;
+  }
+
+  .empty-state{
+    text-align:center; padding: 40px 20px; color:var(--ink-soft);
+  }
+
+  footer{ text-align:center; margin-top:40px; font-size:0.78rem; color:var(--ink-soft); }
+
+  /* ---------- View tabs ---------- */
+  .view-tabs{ display:flex; gap:8px; margin-bottom:16px; }
+  .view-tab{
+    font-family:'Baloo 2'; font-weight:700; font-size:0.95rem;
+    background:transparent; border:2px solid var(--ink); color:var(--ink);
+    border-radius:999px; padding:9px 20px; cursor:pointer;
+  }
+  .view-tab.active{ background:var(--ink); color:#fff; }
+
+  /* ---------- Pull button + pull row on detail ---------- */
+  .pull-row{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    margin-top:18px; padding-top:16px; border-top:1.5px dashed var(--bg-2);
+  }
+  .pull-btn{
+    font-family:'Baloo 2'; font-weight:700; font-size:0.9rem;
+    background: linear-gradient(120deg, var(--pink), #FF6FA8);
+    color:#fff; border:none; border-radius:999px; padding:11px 20px; cursor:pointer;
+    box-shadow: 0 4px 0 rgba(255,62,130,0.35);
+    transition: transform .12s ease;
+  }
+  .pull-btn:hover{ transform: translateY(-2px); }
+  .pull-btn:active{ transform: translateY(1px); }
+  .collected-count{ font-size:0.82rem; color:var(--ink-soft); }
+  .mini-cards{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .view-all-link{
+    background:none; border:none; color:var(--pink); font-weight:700; font-size:0.8rem;
+    cursor:pointer; text-decoration:underline; padding:0;
+  }
+
+  /* ---------- Photocard component (shared: gallery + reveal) ---------- */
+  .pcard{
+    width:120px; border-radius:14px; padding:8px; background:#fff;
+    display:flex; flex-direction:column; gap:6px; position:relative;
+    border:2px solid var(--lilac);
+  }
+  .pcard-lg{ width:180px; padding:12px; border-radius:18px; }
+  .pcard-art{
+    width:100%; aspect-ratio: 3/3.6; border-radius:10px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; position:relative;
+    font-family:'Baloo 2'; font-weight:800; color:#fff; font-size:1.4rem;
+  }
+  .pcard-lg .pcard-art{ font-size:2rem; }
+  .pcard-art img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .pcard-art::after{ content:''; position:absolute; inset:0; background:linear-gradient(160deg, rgba(255,255,255,0.25), transparent 55%); }
+  .pcard-num{ position:absolute; bottom:4px; right:6px; font-size:0.62rem; font-weight:800; color:rgba(255,255,255,0.9); z-index:2; text-shadow:0 1px 2px rgba(0,0,0,0.4); }
+  .pcard-name{ font-family:'Baloo 2'; font-weight:700; font-size:0.72rem; margin:0; }
+  .pcard-lg .pcard-name{ font-size:0.95rem; }
+  .pcard-caption{ font-size:0.62rem; color:var(--ink-soft); margin:0; line-height:1.3; }
+  .pcard-lg .pcard-caption{ font-size:0.78rem; }
+  .rarity-badge{
+    align-self:flex-start; font-size:0.58rem; font-weight:800; letter-spacing:0.02em;
+    padding:2px 7px; border-radius:999px;
+  }
+  .pcard-lg .rarity-badge{ font-size:0.7rem; padding:3px 10px; }
+
+  .rarity-common{ border-color:var(--lilac); }
+  .rarity-common .rarity-badge{ background:var(--bg-2); color:var(--ink-soft); }
+
+  .rarity-rare{ border-color:var(--blue); box-shadow:0 0 0 3px rgba(95,201,248,0.15); }
+  .rarity-rare .rarity-badge{ background:rgba(95,201,248,0.18); color:#1C8FC4; }
+
+  .rarity-epic{ border-color:var(--pink); box-shadow:0 0 16px rgba(255,62,130,0.3); }
+  .rarity-epic .rarity-badge{ background:rgba(255,62,130,0.15); color:var(--pink); }
+
+  .rarity-legendary{
+    border:2px solid transparent;
+    background-image: linear-gradient(#fff,#fff), linear-gradient(115deg,#FFC94A,#FF3E82,#5FC9F8,#8B6FE0,#FFC94A);
+    background-origin: border-box; background-clip: padding-box, border-box;
+    background-size: 100% 100%, 300% 300%;
+    animation: shimmerMove 4s linear infinite;
+    box-shadow:0 0 20px rgba(255,201,74,0.45);
+  }
+  .rarity-legendary .rarity-badge{ background:linear-gradient(120deg,#FFC94A,#FF3E82); color:#fff; }
+  @keyframes shimmerMove{ 0%{background-position:0% 0%, 0% 50%;} 100%{background-position:0% 0%, 200% 50%;} }
+
+  /* ---------- Pull reveal modal ---------- */
+  .reveal-wrap{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .flip-scene{ perspective:1200px; width:180px; height:245px; }
+  .flip-inner{
+    position:relative; width:100%; height:100%; transition: transform .7s cubic-bezier(.2,.8,.2,1);
+    transform-style:preserve-3d; cursor:pointer;
+  }
+  .flip-inner.flipped{ transform: rotateY(180deg); }
+  .flip-face{
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:18px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .flip-front{
+    background: linear-gradient(135deg, var(--ink), #4A3468);
+    color:#fff; font-family:'Baloo 2'; font-size:2.6rem; font-weight:800;
+    border:2px solid rgba(255,255,255,0.15);
+  }
+  .flip-back{ transform: rotateY(180deg); padding:0; }
+  .reveal-hint{ font-size:0.85rem; color:var(--ink-soft); font-weight:600; }
+  .reveal-actions{ display:flex; gap:10px; }
+
+  /* ---------- Gallery view ---------- */
+  .gallery-stats{
+    display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;
+  }
+  .stat-pill{
+    background:var(--paper); border-radius:14px; padding:10px 16px;
+    box-shadow:0 3px 0 var(--ring);
+    font-size:0.8rem; color:var(--ink-soft); font-weight:600;
+  }
+  .stat-pill b{ font-family:'Baloo 2'; font-size:1.1rem; color:var(--ink); display:block; }
+  .gallery-grid{
+    display:flex; flex-wrap:wrap; gap:14px;
+  }
+  .gallery-empty{ text-align:center; padding:50px 20px; color:var(--ink-soft); }
+  .gallery-empty .big{ font-size:2rem; margin-bottom:8px; }
+
+  /* ---------- Landing screen ---------- */
+  #appWrap{ display:none; }
+  #appWrap.visible{ display:block; animation: fadeIn .4s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .landing{
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding: 60px 20px;
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .landing.leaving{ opacity:0; transform: scale(.98); pointer-events:none; }
+
+  .landing-actors{
+    display:flex; gap:0; margin-bottom:34px; position:relative;
+  }
+  .landing-photo{
+    width:170px; height:215px; border-radius:24px; position:relative; overflow:hidden;
+    box-shadow: 0 18px 40px -14px rgba(43,27,61,0.45);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:2.7rem; color:#fff;
+    border: 4px solid #fff;
+  }
+  .landing-photo img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .landing-photo::after{ content:''; position:absolute; inset:0; background: linear-gradient(160deg, rgba(255,255,255,0.28), transparent 55%); }
+  .landing-photo:nth-child(1){ transform: rotate(-7deg) translateX(14px); z-index:1; }
+  .landing-photo:nth-child(2){ transform: rotate(7deg) translateX(-14px); z-index:2; }
+
+  .landing-featured-name{
+    font-family:'Baloo 2'; font-weight:700; font-size:0.95rem; color:var(--ink-soft);
+    margin: 14px 0 4px; letter-spacing:0.02em;
+  }
+
+  .landing-title{
+    font-family:'Baloo 2', sans-serif; font-weight:800;
+    font-size: clamp(2.2rem, 7vw, 3.2rem); margin:0 0 10px; color:var(--ink);
+  }
+  .landing-title .dot{ color: var(--pink); }
+  .landing-tagline{ margin:0 0 30px; color:var(--ink-soft); font-size:1rem; max-width:44ch; }
+
+  .enter-btn{
+    font-family:'Baloo 2'; font-weight:700; font-size:1.05rem;
+    background: linear-gradient(120deg, var(--pink), #FF6FA8);
+    color:#fff; border:none; border-radius:999px; padding:16px 34px; cursor:pointer;
+    box-shadow: 0 6px 0 rgba(255,62,130,0.35);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .enter-btn:hover{ transform: translateY(-3px); }
+  .enter-btn:active{ transform: translateY(1px); box-shadow: 0 3px 0 rgba(255,62,130,0.35); }
+
+  @media (max-width:480px){
+    .landing-photo{ width:130px; height:165px; }
+  }
+
+  @media (max-width:520px){
+    .grid{ grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap:12px; }
+    header{ align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="landing" id="landingScreen">
+  <div class="landing-actors">
+    <div class="landing-photo" id="landingPhoto1"></div>
+    <div class="landing-photo" id="landingPhoto2"></div>
+  </div>
+  <p class="landing-featured-name" id="landingName"></p>
+  <h1 class="landing-title">Bias Search<span class="dot">.</span></h1>
+  <p class="landing-tagline">Look up your favorite actors, keep tabs on what's coming next, and collect their photocards along the way.</p>
+  <button class="enter-btn" id="enterWorldBtn">Enter the World →</button>
+</div>
+
+<div class="wrap" id="appWrap">
+
+  <header>
+    <div class="title-block">
+      <h1>Bias Search<span class="dot">.</span></h1>
+      <p>Look up your favorite actors, keep tabs on what's coming next, and collect their photocards along the way.</p>
+    </div>
+    <button class="add-btn" id="openAdd">+ Add actor</button>
+  </header>
+
+  <div class="view-tabs" id="viewTabs"></div>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div id="detailMount"></div>
+
+  <div id="galleryMount"></div>
+
+  <footer>tap a card to open their page · your notes, photos, and pulled cards are all saved for next time</footer>
+</div>
+
+<div id="modalMount"></div>
+
+<script>
+const SEED_ACTORS = [
+  {
+    id: 'pond-naravit',
+    name: 'Pond Naravit',
+    fullName: 'Naravit Lertratkosum',
+    agency: 'GMMTV · JASP.ER',
+    color: 'linear-gradient(160deg,#FF3E82,#FF7DA8)',
+    initials: 'PN',
+    bio: "Broke out as Mork in Fish Upon the Sky (2021), then reunited with Phuwin as the leads of Never Let Me Go. Also a member of the GMMTV project group JASP.ER, and runs his own clothing brand, Apollo.",
+    knownFor: ['Fish Upon the Sky (Mork)', 'Never Let Me Go (Palm)', 'Dirty Laundry (Judo)', 'We Are (Phum)', 'Leap Day (Day)', 'Me and Thee (Thee)'],
+    upcoming: ['High & Low: Born to Be High — TV series, in pre-production', "Voice role in Disney·Pixar's Hoppers (Thai dub)"],
+    fact: "Crowned 'hottest guy' of his engineering faculty in university — before switching majors to fit his filming schedule."
+  },
+  {
+    id: 'win-metawin',
+    name: 'Win Metawin',
+    fullName: 'Metawin Opas-iamkajorn',
+    agency: 'GMMTV · Riser Music',
+    color: 'linear-gradient(160deg,#5FC9F8,#8FE0FF)',
+    initials: 'WM',
+    bio: "Debuted in 2gether: The Series in 2020 and became one of Thailand's biggest breakout stars, later leading F4 Thailand: Boys Over Flowers. Also an entrepreneur and the first Thai brand ambassador for Prada.",
+    knownFor: ['2gether: The Series (Tine)', 'F4 Thailand: Boys Over Flowers (Kavin)', 'Enigma (Ar Jin)'],
+    upcoming: ['Scarlet Heart Thailand (Lord Mueang Fah) — with Tu Tontawan', 'Enigma 2'],
+    fact: "Founded streetwear label VELENCE and dessert brand SOURI, and made Forbes 30 Under 30 Asia in 2023."
+  },
+  {
+    id: 'phuwin',
+    name: 'Phuwin',
+    fullName: 'Phuwin Tangsakyuen',
+    agency: 'GMMTV · Riser Music',
+    color: 'linear-gradient(160deg,#FFC94A,#FFE08A)',
+    initials: 'PW',
+    bio: "Pond's longtime on-screen partner, from Fish Upon the Sky through Never Let Me Go to Me and Thee (as Peach). Also releases music as a solo artist and regularly sells out arena concerts with Pond.",
+    knownFor: ['Fish Upon the Sky', 'Never Let Me Go', 'Me and Thee (Peach)'],
+    upcoming: ['Peach and Me — mini-series', 'Scarlet Heart Thailand', 'My Missing Sunshine'],
+    fact: "He and Pond sold out the 'Space Soul-dyssey' concert at Impact Arena across three nights in August 2026."
+  },
+  {
+    id: 'joong-archen',
+    name: 'Joong Archen',
+    fullName: 'Archen Aydin',
+    agency: 'GMMTV · JASP.ER',
+    color: 'linear-gradient(160deg,#8B6FE0,#B79CFF)',
+    initials: 'JA',
+    bio: "Debuted in 2 Moons 2 back in 2019, then built a steady lead-actor career through Star & Sky: Star in My Mind, Hidden Agenda, and The Heart Killers. Now also part of GMMTV's project group JASP.ER.",
+    knownFor: ['Star & Sky: Star in My Mind (Khabkluen)', 'Hidden Agenda (Joke)', 'The Heart Killers (Fadel)', 'ThamePo Heart That Skips a Beat (Ice)', 'Dare You to Death'],
+    upcoming: ['New JASP.ER releases expected following "Sadistic"'],
+    fact: "Moved to Türkiye at age 8 and lived there until 16 — he speaks fluent Turkish."
+  },
+  {
+    id: 'dunk-natachai',
+    name: 'Dunk Natachai',
+    fullName: 'Natachai Boonprasert',
+    agency: 'GMMTV',
+    color: 'linear-gradient(160deg,#3FD6A5,#8FEAC9)',
+    initials: 'DN',
+    bio: "Got his first lead role in Star & Sky: Star in My Mind and has kept building steady main-cast credits since, most recently in Dare You to Death. Also runs a bakery, Navori, and a clothing line, cloudis club.",
+    knownFor: ['Star & Sky: Star in My Mind (Daonuea)', 'Hidden Agenda (Zo)', 'The Heart Killers (Style)', 'Dare You to Death'],
+    upcoming: ['I Will Always Save You'],
+    fact: "Comes from a family of pilots — his dad and grandfather both flew, and it was Dunk's own childhood dream too."
+  }
+];
+
+let customActors = [];
+let favorites = [];
+let notes = {};
+let photos = {};
+let collection = [];
+let selectedId = null;
+let filter = 'all';
+let viewMode = 'binder'; // 'binder' | 'gallery'
+let galleryActorFilter = 'all';
+
+const RARITIES = [
+  { key:'common',    label:'Common',    icon:'◇', weight:0.55 },
+  { key:'rare',       label:'Rare',       icon:'◆', weight:0.28 },
+  { key:'epic',       label:'Epic',       icon:'★', weight:0.13 },
+  { key:'legendary',  label:'Legendary',  icon:'✦', weight:0.04 }
+];
+
+const CARD_FLAVORS = {
+  common: ['Casual selfie', 'Backstage candid', 'Practice room break', 'Coffee run fit', 'Airport look', 'Between-takes smile'],
+  rare: ['Stage bow', 'Fan meeting wave', 'Interview close-up', 'Behind-the-scenes laugh', 'Soundcheck moment'],
+  epic: ['Red carpet shot', 'Magazine cover pose', 'Concert spotlight', 'Award show smile', 'Music video still'],
+  legendary: ["Signed limited edition", "Debut anniversary special", 'Holographic collector card', "Fan-voted MVP moment", 'Opening night exclusive']
+};
+
+function pickWeighted(){
+  const r = Math.random();
+  let acc = 0;
+  for(const tier of RARITIES){
+    acc += tier.weight;
+    if(r <= acc) return tier;
+  }
+  return RARITIES[0];
+}
+
+function pullCard(actorId){
+  const tier = pickWeighted();
+  const flavors = CARD_FLAVORS[tier.key];
+  const caption = flavors[Math.floor(Math.random()*flavors.length)];
+  const number = String(Math.floor(Math.random()*899)+1).padStart(3,'0');
+  const card = {
+    id: 'card-' + Date.now() + '-' + Math.floor(Math.random()*10000),
+    actorId, rarity: tier.key, caption, number,
+    pulledAt: Date.now()
+  };
+  collection = [card, ...collection];
+  saveCollection();
+  return card;
+}
+
+const grid = document.getElementById('grid');
+const filtersEl = document.getElementById('filters');
+const detailMount = document.getElementById('detailMount');
+const modalMount = document.getElementById('modalMount');
+const galleryMount = document.getElementById('galleryMount');
+const viewTabsEl = document.getElementById('viewTabs');
+
+function allActors(){ return [...SEED_ACTORS, ...customActors]; }
+
+async function loadState(){
+  try{
+    const favRes = await window.storage.get('favorites', false);
+    favorites = favRes ? JSON.parse(favRes.value) : [];
+  }catch(e){ favorites = []; }
+
+  try{
+    const customRes = await window.storage.get('custom-actors', false);
+    customActors = customRes ? JSON.parse(customRes.value) : [];
+  }catch(e){ customActors = []; }
+
+  try{
+    const notesRes = await window.storage.get('notes', false);
+    notes = notesRes ? JSON.parse(notesRes.value) : {};
+  }catch(e){ notes = {}; }
+
+  try{
+    const photosRes = await window.storage.get('photos', false);
+    photos = photosRes ? JSON.parse(photosRes.value) : {};
+  }catch(e){ photos = {}; }
+
+  try{
+    const collectionRes = await window.storage.get('card-collection', false);
+    collection = collectionRes ? JSON.parse(collectionRes.value) : [];
+  }catch(e){ collection = []; }
+
+  renderLandingPhotos();
+
+  render();
+}
+
+async function saveFavorites(){
+  try{ await window.storage.set('favorites', JSON.stringify(favorites), false); }catch(e){}
+}
+async function saveCustomActors(){
+  try{ await window.storage.set('custom-actors', JSON.stringify(customActors), false); }catch(e){}
+}
+async function saveNotes(){
+  try{ await window.storage.set('notes', JSON.stringify(notes), false); }catch(e){}
+}
+async function savePhotos(){
+  try{ await window.storage.set('photos', JSON.stringify(photos), false); }catch(e){}
+}
+async function saveCollection(){
+  try{ await window.storage.set('card-collection', JSON.stringify(collection), false); }catch(e){}
+}
+
+// Resize + compress an uploaded image file into a small base64 JPEG
+function readAndResizeImage(file, maxDim){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('read failed'));
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onerror = ()=> reject(new Error('image decode failed'));
+      img.onload = ()=>{
+        let { width, height } = img;
+        if(width > height && width > maxDim){ height = Math.round(height * (maxDim/width)); width = maxDim; }
+        else if(height > maxDim){ width = Math.round(width * (maxDim/height)); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handlePhotoUpload(actorId, file){
+  if(!file) return;
+  try{
+    const dataUrl = await readAndResizeImage(file, 500);
+    photos[actorId] = dataUrl;
+    await savePhotos();
+    render();
+  }catch(e){
+    alert("Couldn't load that image — try a different file.");
+  }
+}
+
+async function removePhoto(actorId){
+  delete photos[actorId];
+  await savePhotos();
+  render();
+}
+
+function toggleFavorite(id){
+  if(favorites.includes(id)){ favorites = favorites.filter(f=>f!==id); }
+  else{ favorites = [...favorites, id]; }
+  saveFavorites();
+  render();
+}
+
+function renderFilters(){
+  const opts = [
+    {key:'all', label:'All'},
+    {key:'fav', label:'★ Favorites'}
+  ];
+  filtersEl.innerHTML = '';
+  opts.forEach(o=>{
+    const b = document.createElement('button');
+    b.className = 'chip' + (filter===o.key ? ' active' : '');
+    b.textContent = o.label;
+    b.onclick = ()=>{ filter = o.key; render(); };
+    filtersEl.appendChild(b);
+  });
+}
+
+function renderGrid(){
+  grid.innerHTML = '';
+  let list = allActors();
+  if(filter === 'fav') list = list.filter(a => favorites.includes(a.id));
+
+  list.forEach(actor=>{
+    const card = document.createElement('div');
+    card.className = 'card' + (selectedId===actor.id ? ' selected' : '');
+    card.onclick = ()=>{ selectedId = actor.id; render(); document.getElementById('detailMount').scrollIntoView({behavior:'smooth', block:'nearest'}); };
+    const photoSrc = photos[actor.id];
+    card.innerHTML = `
+      <div class="avatar" style="background:${actor.color}">
+        ${favorites.includes(actor.id) ? '<span class="fav-mark">★</span>' : ''}
+        ${photoSrc ? `<img src="${photoSrc}" alt="${actor.name}">` : `<span class="initials">${actor.initials}</span>`}
+      </div>
+      <p class="card-name">${actor.name}</p>
+      <p class="card-sub">${actor.fullName}</p>
+      <span class="card-badge">${actor.agency}</span>
+    `;
+    grid.appendChild(card);
+  });
+
+  const addCard = document.createElement('div');
+  addCard.className = 'add-card';
+  addCard.onclick = openAddModal;
+  addCard.innerHTML = `<span class="plus">+</span><span>Add actor</span>`;
+  grid.appendChild(addCard);
+
+  if(filter === 'fav' && list.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.style.gridColumn = '1 / -1';
+    empty.textContent = "No favorites yet — tap the star on someone's page to pin them here.";
+    grid.insertBefore(empty, addCard);
+  }
+}
+
+function renderDetail(){
+  detailMount.innerHTML = '';
+  if(!selectedId) return;
+  const actor = allActors().find(a=>a.id===selectedId);
+  if(!actor) return;
+  const isFav = favorites.includes(actor.id);
+  const isCustom = customActors.some(a=>a.id===actor.id);
+
+  const photoSrc = photos[actor.id];
+  const el = document.createElement('div');
+  el.className = 'detail';
+  el.innerHTML = `
+    <div class="detail-top">
+      <div>
+        <div class="detail-avatar" style="background:${actor.color}">
+          ${photoSrc ? `<img src="${photoSrc}" alt="${actor.name}">` : `<span>${actor.initials}</span>`}
+        </div>
+        <div class="photo-controls">
+          <button class="photo-btn" id="photoBtn">${photoSrc ? 'Change photo' : 'Add photo'}</button>
+          ${photoSrc ? `<button class="photo-btn" id="removePhotoBtn">Remove photo</button>` : ''}
+          <input type="file" id="photoInput" accept="image/*" style="display:none">
+        </div>
+      </div>
+      <div class="detail-head">
+        <div class="detail-head-row">
+          <h2>${actor.name}</h2>
+          <button class="fav-btn ${isFav?'on':''}" id="favBtn">${isFav ? '★ Favorited' : '☆ Favorite'}</button>
+          <button class="close-x" id="closeBtn">&times;</button>
+        </div>
+        <p class="role">${actor.fullName} · ${actor.agency}</p>
+        <p class="bio">${actor.bio}</p>
+      </div>
+    </div>
+
+    ${actor.knownFor && actor.knownFor.length ? `
+    <div class="section-label">🎬 Known for</div>
+    <div class="tags">${actor.knownFor.map(k=>`<span class="tag">${k}</span>`).join('')}</div>
+    ` : ''}
+
+    ${actor.upcoming && actor.upcoming.length ? `
+    <div class="section-label">🔜 Upcoming</div>
+    <div class="tags">${actor.upcoming.map(k=>`<span class="tag upcoming">${k}</span>`).join('')}</div>
+    ` : ''}
+
+    ${actor.fact ? `<div class="fact-box"><b>Fun fact:</b> ${actor.fact}</div>` : ''}
+
+    <div class="pull-row">
+      <button class="pull-btn" id="pullBtn">🎴 Pull a card</button>
+      <span class="collected-count" id="collectedCount"></span>
+    </div>
+    <div class="mini-cards" id="miniCards"></div>
+
+    <div class="section-label">📝 Your notes</div>
+    <textarea id="noteArea" placeholder="Thoughts, watch progress, things to remember...">${notes[actor.id] || ''}</textarea>
+    <p class="save-hint" id="saveHint">Saved automatically</p>
+
+    ${isCustom ? `<div class="remove-row"><button class="remove-btn" id="removeBtn">Remove this actor</button></div>` : ''}
+  `;
+  detailMount.appendChild(el);
+
+  document.getElementById('closeBtn').onclick = ()=>{ selectedId = null; render(); };
+  document.getElementById('favBtn').onclick = ()=> toggleFavorite(actor.id);
+
+  const photoInput = document.getElementById('photoInput');
+  document.getElementById('photoBtn').onclick = ()=> photoInput.click();
+  photoInput.onchange = (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if(file) handlePhotoUpload(actor.id, file);
+  };
+  const removePhotoBtn = document.getElementById('removePhotoBtn');
+  if(removePhotoBtn){
+    removePhotoBtn.onclick = ()=> removePhoto(actor.id);
+  }
+
+  document.getElementById('pullBtn').onclick = ()=> openPullModal(actor.id);
+  const actorCards = collection.filter(c=>c.actorId===actor.id);
+  document.getElementById('collectedCount').textContent = actorCards.length
+    ? `${actorCards.length} card${actorCards.length>1?'s':''} collected`
+    : 'No cards collected yet';
+  const miniCards = document.getElementById('miniCards');
+  if(actorCards.length){
+    const rarityOrder = { legendary:0, epic:1, rare:2, common:3 };
+    const preview = [...actorCards].sort((a,b)=> rarityOrder[a.rarity]-rarityOrder[b.rarity] || b.pulledAt-a.pulledAt).slice(0,4);
+    miniCards.innerHTML = preview.map(c=>renderCardHTML(c, actor, 'sm')).join('')
+      + (actorCards.length > 4 ? `<button class="view-all-link" id="viewAllLink" style="align-self:center;">View all →</button>` : '');
+    const viewAllLink = document.getElementById('viewAllLink');
+    if(viewAllLink){
+      viewAllLink.onclick = ()=>{ viewMode='gallery'; galleryActorFilter=actor.id; render(); };
+    }
+  }
+
+  const noteArea = document.getElementById('noteArea');
+  let noteTimer;
+  noteArea.addEventListener('input', ()=>{
+    const hint = document.getElementById('saveHint');
+    hint.textContent = 'Saving...';
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(async ()=>{
+      notes[actor.id] = noteArea.value;
+      await saveNotes();
+      hint.textContent = 'Saved automatically';
+    }, 500);
+  });
+
+  if(isCustom){
+    document.getElementById('removeBtn').onclick = async ()=>{
+      customActors = customActors.filter(a=>a.id !== actor.id);
+      favorites = favorites.filter(f=>f!==actor.id);
+      delete notes[actor.id];
+      await saveCustomActors();
+      await saveFavorites();
+      await saveNotes();
+      selectedId = null;
+      render();
+    };
+  }
+}
+
+function openAddModal(){
+  modalMount.innerHTML = `
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <h3>Add an actor</h3>
+        <div class="field">
+          <label>Name</label>
+          <input id="fName" placeholder="e.g. Bright Vachirawit" />
+        </div>
+        <div class="field">
+          <label>Full name / agency (optional)</label>
+          <input id="fSub" placeholder="e.g. GMMTV" />
+        </div>
+        <div class="field">
+          <label>Notes (optional)</label>
+          <textarea id="fNote" rows="3" placeholder="Why you're watching them, what to check out..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="cancelBtn">Cancel</button>
+          <button class="btn-primary" id="saveBtn">Add to binder</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  document.getElementById('cancelBtn').onclick = closeModal;
+  document.getElementById('saveBtn').onclick = async ()=>{
+    const name = document.getElementById('fName').value.trim();
+    if(!name) return;
+    const sub = document.getElementById('fSub').value.trim();
+    const note = document.getElementById('fNote').value.trim();
+    const palette = ['linear-gradient(160deg,#FF3E82,#FF7DA8)','linear-gradient(160deg,#5FC9F8,#8FE0FF)','linear-gradient(160deg,#FFC94A,#FFE08A)','linear-gradient(160deg,#8B6FE0,#B79CFF)','linear-gradient(160deg,#3FD6A5,#8FEAC9)'];
+    const id = 'custom-' + name.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '-' + Date.now();
+    const initials = name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const newActor = {
+      id, name, fullName: sub || '', agency: sub ? '' : 'Added by you',
+      color: palette[customActors.length % palette.length],
+      initials: initials || '?',
+      bio: '', knownFor: [], upcoming: [], fact: ''
+    };
+    customActors = [...customActors, newActor];
+    await saveCustomActors();
+    if(note){ notes[id] = note; await saveNotes(); }
+    closeModal();
+    selectedId = id;
+    render();
+  };
+}
+function renderCardHTML(card, actor, size){ // size: 'sm' | 'lg'
+  const tier = RARITIES.find(r=>r.key===card.rarity);
+  const photoSrc = photos[actor.id];
+  const sizeClass = size === 'lg' ? 'pcard-lg' : '';
+  return `
+    <div class="pcard rarity-${card.rarity} ${sizeClass}">
+      <span class="rarity-badge">${tier.icon} ${tier.label}</span>
+      <div class="pcard-art" style="background:${actor.color}">
+        ${photoSrc ? `<img src="${photoSrc}" alt="${actor.name}">` : `<span>${actor.initials}</span>`}
+        <span class="pcard-num">#${card.number}</span>
+      </div>
+      <p class="pcard-name">${actor.name}</p>
+      <p class="pcard-caption">${card.caption}</p>
+    </div>
+  `;
+}
+
+function openPullModal(actorId){
+  const actor = allActors().find(a=>a.id===actorId);
+  if(!actor) return;
+  modalMount.innerHTML = `
+    <div class="overlay" id="overlay">
+      <div class="modal">
+        <h3>Pulling for ${actor.name}...</h3>
+        <div class="reveal-wrap">
+          <div class="flip-scene">
+            <div class="flip-inner" id="flipInner">
+              <div class="flip-face flip-front" id="flipFront">?</div>
+              <div class="flip-face flip-back" id="flipBack"></div>
+            </div>
+          </div>
+          <p class="reveal-hint" id="revealHint">Tap the card to reveal</p>
+          <div class="reveal-actions" id="revealActions"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  const flipInner = document.getElementById('flipInner');
+  flipInner.onclick = ()=>{
+    if(flipInner.classList.contains('flipped')) return;
+    const card = pullCard(actorId);
+    document.getElementById('flipBack').innerHTML = renderCardHTML(card, actor, 'lg');
+    flipInner.classList.add('flipped');
+    document.getElementById('revealHint').textContent = RARITIES.find(r=>r.key===card.rarity).label + ' pull!';
+    document.getElementById('revealActions').innerHTML = `
+      <button class="btn-secondary" id="pullAgainBtn">Pull again</button>
+      <button class="btn-primary" id="doneBtn">Nice!</button>
+    `;
+    document.getElementById('doneBtn').onclick = ()=>{ closeModal(); render(); };
+    document.getElementById('pullAgainBtn').onclick = ()=>{ render(); openPullModal(actorId); };
+  };
+}
+
+function renderViewTabs(){
+  viewTabsEl.innerHTML = `
+    <button class="view-tab ${viewMode==='binder'?'active':''}" id="tabBinder">My Actors</button>
+    <button class="view-tab ${viewMode==='gallery'?'active':''}" id="tabGallery">Card Gallery${collection.length ? ' · ' + collection.length : ''}</button>
+  `;
+  document.getElementById('tabBinder').onclick = ()=>{ viewMode='binder'; render(); };
+  document.getElementById('tabGallery').onclick = ()=>{ viewMode='gallery'; render(); };
+}
+
+function renderGallery(){
+  galleryMount.innerHTML = '';
+  if(viewMode !== 'gallery'){ return; }
+
+  const actorsWithCards = allActors().filter(a => collection.some(c=>c.actorId===a.id));
+  const counts = { common:0, rare:0, epic:0, legendary:0 };
+  collection.forEach(c=>{ counts[c.rarity] = (counts[c.rarity]||0) + 1; });
+
+  const wrap = document.createElement('div');
+
+  if(collection.length === 0){
+    wrap.innerHTML = `
+      <div class="gallery-empty">
+        <div class="big">🎴</div>
+        <p>No cards yet — open an actor's page and hit <b>Pull a card</b> to start your collection.</p>
+      </div>
+    `;
+    galleryMount.appendChild(wrap);
+    return;
+  }
+
+  const statsHtml = `
+    <div class="gallery-stats">
+      <div class="stat-pill"><b>${collection.length}</b>total cards</div>
+      <div class="stat-pill"><b>${actorsWithCards.length}</b>actors collected</div>
+      <div class="stat-pill"><b>${counts.legendary||0}</b>legendary ✦</div>
+      <div class="stat-pill"><b>${counts.epic||0}</b>epic ★</div>
+    </div>
+  `;
+
+  const chipsHtml = `
+    <div class="filters" style="margin-bottom:20px;">
+      <button class="chip ${galleryActorFilter==='all'?'active':''}" data-actor="all">All</button>
+      ${actorsWithCards.map(a=>`<button class="chip ${galleryActorFilter===a.id?'active':''}" data-actor="${a.id}">${a.name}</button>`).join('')}
+    </div>
+  `;
+
+  let cards = collection;
+  if(galleryActorFilter !== 'all') cards = cards.filter(c=>c.actorId===galleryActorFilter);
+  const rarityOrder = { legendary:0, epic:1, rare:2, common:3 };
+  cards = [...cards].sort((a,b)=> rarityOrder[a.rarity]-rarityOrder[b.rarity] || b.pulledAt-a.pulledAt);
+
+  const cardsHtml = `<div class="gallery-grid">${cards.map(c=>{
+    const actor = allActors().find(a=>a.id===c.actorId);
+    if(!actor) return '';
+    return renderCardHTML(c, actor, 'sm');
+  }).join('')}</div>`;
+
+  wrap.innerHTML = statsHtml + chipsHtml + cardsHtml;
+  galleryMount.appendChild(wrap);
+
+  wrap.querySelectorAll('[data-actor]').forEach(btn=>{
+    btn.onclick = ()=>{ galleryActorFilter = btn.getAttribute('data-actor'); renderGallery(); };
+  });
+}
+
+function closeModal(){ modalMount.innerHTML = ''; }
+
+function render(){
+  renderLandingPhotos();
+  renderViewTabs();
+  if(viewMode === 'binder'){
+    filtersEl.style.display = '';
+    grid.style.display = '';
+    galleryMount.innerHTML = '';
+    renderFilters();
+    renderGrid();
+    renderDetail();
+  } else {
+    filtersEl.style.display = 'none';
+    grid.style.display = 'none';
+    detailMount.innerHTML = '';
+    renderGallery();
+  }
+}
+
+document.getElementById('openAdd').onclick = openAddModal;
+
+// ---------- Landing screen ----------
+const FEATURED_ACTOR_IDS = ['pond-naravit', 'joong-archen'];
+
+function renderLandingPhotos(){
+  const featured = FEATURED_ACTOR_IDS.map(id => SEED_ACTORS.find(a => a.id === id)).filter(Boolean);
+  const slots = [document.getElementById('landingPhoto1'), document.getElementById('landingPhoto2')];
+  const nameEl = document.getElementById('landingName');
+
+  featured.forEach((actor, i)=>{
+    const slot = slots[i];
+    if(!slot) return;
+    slot.style.background = actor.color;
+    const photoSrc = photos[actor.id];
+    slot.innerHTML = photoSrc ? `<img src="${photoSrc}" alt="${actor.name}">` : `<span>${actor.initials}</span>`;
+  });
+
+  if(nameEl) nameEl.textContent = featured.map(a => a.name).join(' & ');
+}
+
+document.getElementById('enterWorldBtn').onclick = ()=>{
+  const landing = document.getElementById('landingScreen');
+  const appWrap = document.getElementById('appWrap');
+  landing.classList.add('leaving');
+  setTimeout(()=>{
+    landing.style.display = 'none';
+    appWrap.classList.add('visible');
+    appWrap.scrollIntoView({behavior:'instant', block:'start'});
+  }, 350);
+};
+
+renderLandingPhotos();
+loadState();
+</script>
+</body>
+</html>
